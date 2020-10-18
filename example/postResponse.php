@@ -1,5 +1,5 @@
 <?php
-//Request Data GET Example
+//Request Data (RD) GET Example
 //RD library is almost unnecessary for the GET method. It only offers some minor conveniences.
 
 require '../RD.php';

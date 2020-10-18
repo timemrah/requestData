@@ -1,6 +1,6 @@
 <?php
-//Request Data PUT Example
-//Since there is no $ _PUT supergobal in PHP, the RD library is very useful.
+//Request Data (RD) PUT Example
+//Since there is no $_PUT supergobal in PHP, the RD library is very useful.
 
 require '../RD.php';
 
@@ -12,6 +12,7 @@ echo '<hr />';
 
 
 $_PUT = RD::PUT();
+echo $_PUT['form-name'] . '<br />';
 echo $_PUT['name']['first'] . '<br />';
 echo $_PUT['name']['last'] . '<br />';
 echo $_PUT['birth'] . '<br />';
