@@ -1,4 +1,4 @@
-# requestData
+# requestData (RD)
 
 PHP easily provides data coming to the server with **$ _POST** and **$ _GET**.
 
