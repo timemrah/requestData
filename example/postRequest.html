@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Request Data POST Example</title>
+</head>
+<body>
+
+<h1>Request Data POST Example</h1>
+
+<form>
+    <input type="hidden" name="form-name" value="member-form">
+    <div>
+        <div><label>Name</label></div>
+        <input name="name[first]">
+    </div>
+    <div>
+        <div><label>Surname</label></div>
+        <input name="name[last]">
+    </div>
+    <div>
+        <div><label>Birth Year</label></div>
+        <input name="birth">
+    </div>
+    <button>Send</button>
+</form>
+
+
+
+
+<div id="response-text"></div>
+
+
+
+
+<script>
+    const responseDom = document.getElementById('response-text');
+    const form = document.querySelector('form');
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+
+        xhr.addEventListener('load', res => {
+
+            responseDom.innerHTML = xhr.responseText;
+
+        });
+        xhr.open('POST', 'postResponse.php');
+        xhr.send(formData);
+    });
+</script>
+</body>
+</html>
