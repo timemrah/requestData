@@ -25,6 +25,20 @@ class Request
 
 
 
+    public static function positiveQueryStr($key, $default = null){
+
+        $value = self::queryStr($key);
+
+        if(!is_numeric($value) || $value < 1){
+            return $default;
+        }
+
+        return $value;
+    }
+
+
+
+
     public static function body(string $key = null){
 
         $values = ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST) ? $_POST : self::getInputValues();
@@ -34,6 +48,20 @@ class Request
 
         return self::dotNestedKeySearchFromArray($key, $values);
 
+    }
+
+
+
+
+    public static function positiveBody($key, $default = null){
+
+        $value = self::body($key);
+
+        if(!is_numeric($value) || $value < 1){
+            return $default;
+        }
+
+        return $value;
     }
 
 
@@ -60,16 +88,15 @@ class Request
     public static function data(string $key = null){
 
         $queryString = (array) self::queryStr();
-        $body = (array) self::body();
-        $header = (array) self::header();
-
-        $mergeData = array_merge($header, $queryString, $body);
+        $body        = (array) self::body();
+        $header      = (array) self::header();
+        $mergedData   = array_merge($header, $queryString, $body);
 
         if($key === null){
-            return $mergeData;
+            return $mergedData;
         }
 
-        return self::dotNestedKeySearchFromArray($key, $mergeData);
+        return self::dotNestedKeySearchFromArray($key, $mergedData);
 
     }
 
@@ -81,7 +108,9 @@ class Request
         if($method !== $_SERVER['REQUEST_METHOD']){
             return new class{
                 static function queryStr(){}
+                static function positiveQueryStr(){}
                 static function body(){}
+                static function positiveBody(){}
                 static function header(){}
             };
         }
