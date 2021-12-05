@@ -1,98 +1,102 @@
 <?php
 
 
-class RD //REQUEST DATA
+
+
+class Request
 {
+
+
 
     private static $inputValues = null;
 
 
-    public static function GET(string $key = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'GET'){ return []; }
 
-        if($_GET){
-            $values = $_GET;
-        } else{
-            if(self::$inputValues === null){ self::$inputValues = self::phpInputToValues(); }
-            $values = self::$inputValues;
+
+    public static function queryStr(string $key = null){
+
+        if($key === null){
+            return $_GET;
         }
 
-        if($key === null){ return $values; }
+        return self::dotNestedKeySearchFromArray($key, $_GET);
+    }
+
+
+
+
+    public static function body(string $key = null){
+
+        $values = ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST) ? $_POST : self::getInputValues();
+        if($key === null){
+            return $values;
+        }
+
         return self::dotNestedKeySearchFromArray($key, $values);
 
     }
-    public static function positiveGET(string $key = null, $default = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'GET'){ return []; }
-
-        $value = self::GET($key);
-        if(!is_numeric($value) || $value < 1){ return $default; }
-        return (int) $value;
-    }
 
 
-    public static function POST(string $key = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'POST'){ return []; }
-
-        if($key === null && $_POST){ return $_POST; }
-        $value = self::dotNestedKeySearchFromArray($key, $_POST);
-        if($value){ return $value; }
-
-        //ALL VALUE TYPE
-        if(self::$inputValues === null){ self::$inputValues = self::phpInputToValues(); }
-        if($key === null){ return self::$inputValues; }
-        return self::dotNestedKeySearchFromArray($key, self::$inputValues);
-
-    }
-    public static function positivePOST(string $key = null, $default = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'POST'){ return []; }
-
-        $value = self::POST($key);
-        if(!is_numeric($value) || $value < 1){ return $default; }
-        return (int) $value;
-    }
 
 
-    public static function PUT(string $key = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'PUT'){ return []; }
+    public static function header(string $key = null){
 
-        if(self::$inputValues === null){ self::$inputValues = self::phpInputToValues(); }
-        if($key === null){ return self::$inputValues; }
-        return self::dotNestedKeySearchFromArray($key, self::$inputValues);
-    }
-    public static function positivePUT(string $key = null, $default = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'PUT'){ return []; }
-
-        $value = self::PUT($key);
-        if(!is_numeric($value) || $value < 1){ return $default; }
-        return (int) $value;
-    }
-
-
-    public static function DELETE(string $key = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'DELETE'){ return []; }
-
-        if($_GET){
-            $values = $_GET;
-        } else{
-            if(self::$inputValues === null){ self::$inputValues = self::phpInputToValues(); }
-            $values = self::$inputValues;
+        $headers = apache_request_headers();
+        if($key === null){
+            return $headers;
         }
 
-        if($key === null){ return $values; }
-        return self::dotNestedKeySearchFromArray($key, $values);
-    }
-    public static function positiveDELETE(string $key = null, $default = null){
-        if($_SERVER['REQUEST_METHOD'] !== 'DELETE'){ return []; }
+        if(isset($headers[$key])){
+            return $headers[$key];
+        }
 
-        $value = self::PUT($key);
-        if(!is_numeric($value) || $value < 1){ return $default; }
-        return (int) $value;
+        return null;
+
     }
 
 
 
 
+    public static function data(string $key = null){
 
+        $queryString = (array) self::queryStr();
+        $body = (array) self::body();
+        $header = (array) self::header();
+
+        $mergeData = array_merge($header, $queryString, $body);
+
+        if($key === null){
+            return $mergeData;
+        }
+
+        return self::dotNestedKeySearchFromArray($key, $mergeData);
+
+    }
+
+
+
+
+    public static function isMethod($method){
+
+        if($method !== $_SERVER['REQUEST_METHOD']){
+            return new class{
+                static function queryStr(){}
+                static function body(){}
+                static function header(){}
+            };
+        }
+
+        return Request::class;
+    }
+
+
+
+
+
+
+
+
+    // PRIVATE :
     private static function formValueTypeCorrection($value){
         if(is_numeric($value)){
             if(strpos($value, '.') !== false || strpos($value, ',') !== false){
@@ -105,6 +109,8 @@ class RD //REQUEST DATA
         }
         return $value;
     }
+
+
 
 
     private static function dotNestedKeySearchFromArray($dotNestedKey, $array){
@@ -123,6 +129,16 @@ class RD //REQUEST DATA
     }
 
 
+
+
+    private static function getInputValues(){
+        if(self::$inputValues === null){ self::$inputValues = self::phpInputToValues(); }
+        return self::$inputValues;
+    }
+
+
+
+
     private static function phpInputToValues():array{
 
         $nestedFormData = [];
@@ -130,16 +146,16 @@ class RD //REQUEST DATA
         $lines = file('php://input');
 
 
-        // JSON DATA TYPE :
-        if(isJson($lines[0])){
-            return json_decode($lines[0], true);
-        }
-
-
         // X-WWW-FORM-URLENCODED DATA TYPE :
         if(getHeader('Content-Type') === 'application/x-www-form-urlencoded'){
             parse_str($lines[0], $formData);
-            return $formData;
+            return $formData ?? [];
+        }
+
+
+        // JSON DATA TYPE :
+        if(isJson($lines[0])){
+            return json_decode($lines[0], true);
         }
 
 
@@ -153,6 +169,9 @@ class RD //REQUEST DATA
                 $formData[$key] = $value;
             }
         }
+
+
+
 
         //RAW INPUT DATA TO NESTED KEY VALUE
         foreach($formData as $rawKeys => $value){
@@ -176,5 +195,8 @@ class RD //REQUEST DATA
 
         return $nestedFormData;
     }
+
+
+
 
 }
