@@ -3,7 +3,7 @@
 
 
 
-class Request
+class Req
 {
 
 
@@ -103,7 +103,25 @@ class Request
 
 
 
-    public static function isMethod($method){
+    public static function getRawInputContent($type = null){
+        if($type === 'line'){
+            return file('php://input');
+        }
+
+        return file_get_contents('php://input');
+    }
+
+
+
+
+    public static function getMethod(){
+        return $_SERVER['REQUEST_METHOD'];
+    }
+
+
+
+
+    public static function forceMethod($method){
 
         if($method !== $_SERVER['REQUEST_METHOD']){
             return new class{
@@ -116,6 +134,13 @@ class Request
         }
 
         return Request::class;
+    }
+
+
+
+
+    public static function isMethod($val):bool{
+        return ($_SERVER['REQUEST_METHOD'] === $val);
     }
 
 
@@ -170,9 +195,8 @@ class Request
 
     private static function phpInputToValues():array{
 
-        $nestedFormData = [];
         $formData = [];
-        $lines = file('php://input');
+        $lines = self::getRawInputContent('line');
 
 
         // X-WWW-FORM-URLENCODED DATA TYPE :
@@ -190,39 +214,18 @@ class Request
 
         // FORM-DATA DATA TYPE :
         //RAW KEY VALUE CREATE
+        $dataString = "";
         foreach($lines as $i =>  $line){
             $searchFieldLine = 'Content-Disposition: form-data; name="'; //38 characters
             if(strpos($line, $searchFieldLine) !== false){
                 $key = substr($line, strlen($searchFieldLine), -3);
                 $value = trim($lines[$i + 2]);
-                $formData[$key] = $value;
+                $dataString .= "{$key}={$value}&";
             }
         }
-
-
-
-
-        //RAW INPUT DATA TO NESTED KEY VALUE
-        foreach($formData as $rawKeys => $value){
-
-            $nestedInputData = [];
-            $delegate = &$nestedInputData;
-
-            //NESTED KEY PARSE
-            $dirtyNestedKeys = explode('[', $rawKeys);
-            foreach($dirtyNestedKeys as $dirtyKey){
-                $key = $dirtyKey;
-                //CLEAR DIRTY KEY
-                if(substr($dirtyKey, -1) === ']'){
-                    $key = substr($dirtyKey, 0, -1);
-                }
-                $delegate = &$delegate[$key];
-            }
-            $delegate = $value;
-            $nestedFormData = array_merge_recursive($nestedFormData, $nestedInputData);
-        }
-
-        return $nestedFormData;
+        $dataString = substr($dataString, 0, -1);
+        parse_str($dataString, $formData);
+        return $formData;
     }
 
 
